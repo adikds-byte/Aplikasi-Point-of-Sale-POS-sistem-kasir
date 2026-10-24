@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System - Ultimate Workspace</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .font-tech { font-family: 'Orbitron', sans-serif; }
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .theme-dark {
+            --bg-main: #020617; --bg-card: #0f172a; --bg-header: rgba(15, 23, 42, 0.95);
+            --border-color: #334155; --text-main: #f8fafc; --text-muted: #94a3b8;
+        }
+        .theme-light {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --bg-header: rgba(255, 255, 255, 0.95);
+            --border-color: #cbd5e1; --text-main: #0f172a; --text-muted: #334155;
+        }
+
+        .drag-handle { cursor: move; user-select: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hidden-ui { display: none !important; }
+
+        .orbit-ring { position: absolute; border-radius: 50%; border: 3px dashed; opacity: 0.8; }
+        .orbit-ring-1 { width: 170px; height: 170px; border-color: #06b6d4 transparent #06b6d4 transparent; animation: spin1 5s linear infinite; }
+        .orbit-ring-2 { width: 190px; height: 190px; border-color: transparent #f59e0b transparent #f59e0b; animation: spin2 7s linear infinite; }
+        .orbit-ring-3 { width: 210px; height: 210px; border-color: #ec4899 transparent #ec4899 transparent; animation: spin3 9s linear infinite; }
+        
+        @keyframes spin1 { 0% { transform: rotateX(70deg) rotateY(20deg) rotateZ(0deg); } 100% { transform: rotateX(70deg) rotateY(20deg) rotateZ(360deg); } }
+        @keyframes spin2 { 0% { transform: rotateX(70deg) rotateY(-40deg) rotateZ(0deg); } 100% { transform: rotateX(70deg) rotateY(-40deg) rotateZ(-360deg); } }
+        @keyframes spin3 { 0% { transform: rotateX(20deg) rotateY(70deg) rotateZ(0deg); } 100% { transform: rotateX(20deg) rotateY(70deg) rotateZ(360deg); } }
+
+        @keyframes blinkL { 0%, 85%, 100% { transform: scaleY(1); } 90% { transform: scaleY(0.05); } }
+        @keyframes blinkR { 0%, 35%, 100% { transform: scaleY(1); } 40% { transform: scaleY(0.05); } }
+        @keyframes earL { 0%, 80%, 100% { transform: rotate(0deg); } 90% { transform: rotate(-18deg); } }
+        @keyframes earR { 0%, 30%, 100% { transform: rotate(0deg); } 40% { transform: rotate(18deg); } }
+        @keyframes tongueOut { 0%, 20%, 80%, 100% { transform: scaleY(0); } 40%, 60% { transform: scaleY(1.3); } }
+        .eye-left { transform-origin: 35px 50px; animation: blinkL 3.5s infinite; }
+        .eye-right { transform-origin: 65px 50px; animation: blinkR 3.5s infinite; }
+        .ear-left { transform-origin: 25px 35px; animation: earL 4s infinite ease-in-out; }
+        .ear-right { transform-origin: 75px 35px; animation: earR 4.5s infinite ease-in-out; }
+        .cat-tongue { transform-origin: 50px 66px; animation: tongueOut 5s infinite ease-in-out; }
+
+        @keyframes technology-scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        @keyframes drift-slow-motion { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-10px) rotate(0.3deg); } }
+        .screensaver-grid { background-image: linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px); background-size: 50px 50px; }
+        .sc-scanline-animation { animation: technology-scanline 7s linear infinite; }
+        .sc-drift-animation { animation: drift-slow-motion 5.5s ease-in-out infinite; }
+        .audio-speaking { box-shadow: 0 0 15px rgba(6, 182, 212, 0.8), 0 0 30px rgba(6, 182, 212, 0.4); border-color: #00ffff !important; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #print-receipt-area, #print-receipt-area * { visibility: visible; }
+            #print-receipt-area { position: absolute; left: 0; top: 0; width: 58mm; padding: 0; margin: 0; font-family: monospace; font-size: 12px; color: black; background: white;}
+        }
+    </style>
+</head>
+<body id="appBody" class="theme-dark bg-[var(--bg-main)] text-[var(--text-main)] p-2 md:p-4 lg:p-6 min-h-screen flex flex-col overflow-x-hidden relative pb-24">
+
+    <!-- CETAK STRUK AREA -->
+    <div id="print-receipt-area" class="hidden absolute top-0 left-0 w-[58mm] bg-white text-black p-2 font-mono text-xs z-[9999]">
+        <div class="text-center mb-2">
+            <h2 class="font-bold text-sm m-0 app-name-display">TOKO MAJU JAYA</h2>
+            <p class="m-0 text-[10px]">Struk Pembayaran Sah</p>
+            <p class="m-0 border-b border-black pb-1 mb-1">------------------------</p>
+        </div>
+        <p class="m-0">No: <span id="receipt-id"></span></p>
+        <p class="m-0">Waktu: <span id="receipt-time"></span></p>
+        <p class="m-0 mb-1">Pelanggan: <span id="receipt-cust"></span></p>
+        <p class="m-0 border-b border-black pb-1 mb-1">------------------------</p>
+        <table class="w-full text-left mb-1">
+            <tbody id="receipt-items"></tbody>
+        </table>
+        <p class="m-0 border-b border-black pb-1 mb-1">------------------------</p>
+        
+        <div id="receipt-subtotal-row" class="flex justify-between font-bold text-[10px] hidden">
+            <span>Subtotal</span>
+            <span id="receipt-subtotal"></span>
+        </div>
+        <div id="receipt-discount-row" class="flex justify-between font-bold text-[10px] hidden mb-1">
+            <span id="receipt-discount-label">Diskon</span>
+            <span id="receipt-discount"></span>
+        </div>
+        <div class="flex justify-between font-bold text-sm">
+            <span>TOTAL</span>
+            <span id="receipt-total"></span>
+        </div>
+        <div class="flex justify-between mt-1 text-[10px]">
+            <span>Metode:</span>
+            <span id="receipt-method"></span>
+        </div>
+        <p class="m-0 border-b border-black pb-1 mb-1 mt-1">------------------------</p>
+        
+        <div id="receipt-footer-text" class="text-center mt-2 text-[10px]"></div>
+    </div>
+
+    <!-- LOADING AWAL KUCING KASIR -->
+    <div id="startupLoader" class="fixed inset-0 z-[9999] bg-[#020714] flex flex-col items-center justify-center overflow-hidden font-tech transition-all duration-700">
+        <div class="absolute inset-0 screensaver-grid opacity-50"></div>
+        <div class="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-30 sc-scanline-animation"></div>
+        
+        <div class="absolute top-10 flex flex-col items-center z-20 font-mono tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">
+            <div id="loading-day" class="text-xl md:text-2xl font-black text-amber-400">MEMUAT...</div>
+            <div id="loading-time" class="text-4xl md:text-6xl font-black text-cyan-400 mt-2">00:00:00</div>
+        </div>
+
+        <div class="z-10 text-center sc-drift-animation flex flex-col items-center px-6 mt-20">
+            <div class="mb-6 drop-shadow-[0_0_25px_rgba(6,182,212,0.8)] relative flex items-center justify-center">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                    <div class="orbit-ring orbit-ring-1"></div>
+                    <div class="orbit-ring orbit-ring-2"></div>
+                    <div class="orbit-ring orbit-ring-3"></div>
+                </div>
+                <svg class="relative z-10" width="130" height="130" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <g class="ear-left"><polygon points="25,45 10,10 45,30" fill="#f8fafc" stroke="#06b6d4" stroke-width="2"/><polygon points="25,38 16,18 38,30" fill="#f472b6"/></g>
+                    <g class="ear-right"><polygon points="75,45 90,10 55,30" fill="#f8fafc" stroke="#06b6d4" stroke-width="2"/><polygon points="75,38 84,18 62,30" fill="#f472b6"/></g>
+                    <circle cx="50" cy="55" r="38" fill="#f8fafc" stroke="#06b6d4" stroke-width="2.5"/>
+                    <path d="M 14 42 Q 50 25 86 42" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+                    <circle cx="50" cy="33" r="12" fill="#cbd5e1" stroke="#06b6d4" stroke-width="2"/><circle cx="50" cy="33" r="4" fill="#020617"/><circle cx="44" cy="27" r="2" fill="#ffffff"/> 
+                    <g class="eye-left"><ellipse cx="35" cy="50" rx="5" ry="7" fill="#020617"/><circle cx="33" cy="48" r="2" fill="#ffffff"/><path d="M 28 45 Q 35 40 42 45" fill="none" stroke="#020617" stroke-width="1.5" stroke-linecap="round"/></g>
+                    <g class="eye-right"><ellipse cx="65" cy="50" rx="5" ry="7" fill="#020617"/><circle cx="63" cy="48" r="2" fill="#ffffff"/><path d="M 58 45 Q 65 40 72 45" fill="none" stroke="#020617" stroke-width="1.5" stroke-linecap="round"/></g>
+                    <ellipse cx="25" cy="62" rx="7" ry="4" fill="#f472b6" opacity="0.7"/><ellipse cx="75" cy="62" rx="7" ry="4" fill="#f472b6" opacity="0.7"/>
+                    <polygon points="47,60 53,60 50,64" fill="#f472b6"/>
+                    <path d="M 38 65 Q 44 72 50 66 Q 56 72 62 65" fill="none" stroke="#020617" stroke-width="2" stroke-linecap="round"/>
+                    <path class="cat-tongue" d="M 45 67 Q 50 85 55 67 Z" fill="#f43f5e" stroke="#9f1239" stroke-width="1"/>
+                </svg>
+            </div>
+            <div class="text-xl md:text-2xl font-black text-cyan-400 mt-2 animate-pulse tracking-widest border-2 border-cyan-500/40 px-6 py-2.5 rounded-full bg-slate-950/80 shadow-[0_0_20px_rgba(6,182,212,0.3)] z-10 relative">
+                MEMUAT MESIN KASIR...
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREENSAVER -->
+    <div id="posScreensaver" class="hidden fixed inset-0 z-[9998] bg-[#020714] flex flex-col items-center justify-center overflow-hidden font-tech transition-all duration-700 opacity-0 select-none cursor-pointer" onclick="triggerScreensaverManual()">
+        <div class="absolute inset-0 screensaver-grid opacity-50 pointer-events-none"></div>
+        <div class="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-30 sc-scanline-animation pointer-events-none"></div>
+        <div class="z-10 text-center sc-drift-animation flex flex-col items-center px-4">
+            <div class="mb-6 drop-shadow-[0_0_35px_rgba(6,182,212,0.9)] relative flex items-center justify-center">
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                    <div class="orbit-ring orbit-ring-1" style="width: 220px; height: 220px;"></div>
+                    <div class="orbit-ring orbit-ring-2" style="width: 250px; height: 250px;"></div>
+                    <div class="orbit-ring orbit-ring-3" style="width: 280px; height: 280px;"></div>
+                </div>
+                <svg class="relative z-10" width="180" height="180" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <g class="ear-left"><polygon points="25,45 10,10 45,30" fill="#0f172a" stroke="#06b6d4" stroke-width="2"/><polygon points="25,38 16,18 38,30" fill="#f472b6"/></g>
+                    <g class="ear-right"><polygon points="75,45 90,10 55,30" fill="#0f172a" stroke="#06b6d4" stroke-width="2"/><polygon points="75,38 84,18 62,30" fill="#f472b6"/></g>
+                    <circle cx="50" cy="55" r="38" fill="#0f172a" stroke="#06b6d4" stroke-width="2.5"/>
+                    <circle cx="50" cy="33" r="12" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/><circle cx="50" cy="33" r="4" fill="#06b6d4"/><circle cx="44" cy="27" r="2" fill="#ffffff"/> 
+                    <g class="eye-left"><ellipse cx="35" cy="50" rx="5" ry="7" fill="#06b6d4"/><circle cx="33" cy="48" r="2" fill="#ffffff"/><path d="M 28 45 Q 35 40 42 45" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"/></g>
+                    <g class="eye-right"><ellipse cx="65" cy="50" rx="5" ry="7" fill="#06b6d4"/><circle cx="63" cy="48" r="2" fill="#ffffff"/><path d="M 58 45 Q 65 40 72 45" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"/></g>
+                    <polygon points="47,60 53,60 50,64" fill="#f472b6"/>
+                    <path d="M 38 65 Q 44 72 50 66 Q 56 72 62 65" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="mb-5 border-2 border-cyan-500/40 px-4 py-2 rounded-full bg-slate-950/80 text-cyan-400 font-mono text-sm tracking-[0.25em] uppercase shadow-lg z-10 relative">
+                <i class="fa-solid fa-lock animate-pulse"></i> Terminal POS Terkunci
+            </div>
+            <div id="scClockDisplay" class="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-200 to-cyan-500 tracking-wider filter drop-shadow-[0_0_30px_rgba(6,182,212,0.6)] z-10 relative">00:00:00</div>
+            <div class="mt-4 text-slate-200 font-medium tracking-widest text-lg md:text-xl border-y-2 border-cyan-500/40 py-3 px-8 bg-slate-900/60 backdrop-blur-sm z-10 relative">
+                <span id="scDateDisplay">Memuat...</span>
+            </div>
+            <div class="mt-8 text-slate-500 font-mono text-xs tracking-[0.3em] uppercase animate-pulse">Gerakkan Kursor Untuk Membuka</div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="w-full flex flex-col justify-between flex-1 gap-4">
+        
+        <!-- HEADER -->
+        <header class="w-full bg-[var(--bg-header)] backdrop-blur-md p-3 md:p-4 rounded-2xl border-2 border-[var(--border-color)] grid grid-cols-1 lg:grid-cols-3 gap-4 items-center shadow-md z-40 relative">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-slate-950 rounded-xl border-2 border-cyan-800 shadow-inner">
+                    <i class="fa-solid fa-store text-cyan-400 text-3xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-tech text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[var(--text-main)] via-cyan-400 to-blue-600 uppercase flex items-center gap-2 app-name-display">
+                        TOKO MAJU JAYA
+                    </h1>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="editAppName()" class="text-[10px] font-mono text-amber-500 hover:text-amber-300 mt-1 uppercase tracking-wider flex items-center gap-1 font-bold">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Nama Toko
+                        </button>
+                        <button onclick="editFooterText()" class="text-[10px] font-mono text-emerald-500 hover:text-emerald-300 mt-1 uppercase tracking-wider flex items-center gap-1 font-bold ml-1">
+                            <i class="fa-solid fa-receipt"></i> Edit Teks Struk
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center w-full">
+                <div class="bg-slate-950/90 border-2 border-[var(--border-color)] py-2 px-6 rounded-xl shadow-sm font-tech text-center flex flex-col items-center">
+                    <div id="lbl-real-day" class="text-[10px] md:text-xs font-black text-slate-400 tracking-wider uppercase">Memuat...</div>
+                    <div class="text-lg md:text-xl font-black text-cyan-400 mt-1 flex items-center gap-1.5 font-mono">
+                        <i class="fa-solid fa-clock text-cyan-500"></i>
+                        <span id="lbl-real-clock">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2 h-auto lg:h-11">
+                <button onclick="openHelpModal()" class="bg-slate-800 hover:bg-slate-700 text-white text-[10px] md:text-[11px] font-mono font-black px-3 py-2 rounded-xl border-2 border-[var(--border-color)] flex items-center gap-1.5 transition-colors">
+                    <i class="fa-solid fa-circle-question text-amber-500"></i> BANTUAN
+                </button>
+                <button onclick="toggleThemeMode()" class="bg-slate-950 border-2 border-[var(--border-color)] text-[10px] md:text-[11px] font-mono font-black px-3 py-2 rounded-xl text-amber-400 hover:border-amber-400 flex items-center gap-1.5 shadow-md transition-colors">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i> <span id="themeText">DARK</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="w-full flex flex-col lg:flex-row gap-4 items-start relative mt-1 flex-1">
+            
+            <!-- SIDEBAR NAV -->
+            <aside class="w-full lg:w-64 shrink-0 lg:sticky lg:top-6 z-30">
+                <div class="bg-[var(--bg-card)] p-4 rounded-2xl border-2 border-[var(--border-color)] space-y-3 shadow-xl">
+                    <h2 class="text-xs font-black text-cyan-500 font-mono uppercase tracking-wider mb-3"><i class="fa-solid fa-server mr-1"></i> Navigasi</h2>
+                    <nav class="flex flex-row overflow-x-auto lg:flex-col gap-2 font-mono text-xs font-bold hide-scrollbar">
+                        <button onclick="switchTab('kasir', this)" class="nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl bg-cyan-600 text-white flex items-center transition-colors shadow-md">
+                            <i class="fa-solid fa-cash-register w-6 text-center"></i> Terminal Kasir
+                        </button>
+                        <button onclick="switchTab('produk', this)" class="nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl text-[var(--text-main)] hover:bg-cyan-500/10 flex items-center transition-colors">
+                            <i class="fa-solid fa-boxes-stacked w-6 text-center text-purple-400"></i> Kelola Stok
+                        </button>
+                        <button onclick="switchTab('pelanggan', this)" class="nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl text-[var(--text-main)] hover:bg-cyan-500/10 flex items-center transition-colors">
+                            <i class="fa-solid fa-users w-6 text-center text-pink-400"></i> Data Pelanggan
+                        </button>
+                        <button onclick="switchTab('laporan', this)" class="nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl text-[var(--text-main)] hover:bg-cyan-500/10 flex items-center transition-colors">
+                            <i class="fa-solid fa-chart-line w-6 text-center text-emerald-400"></i> Laporan Transaksi
+                        </button>
+                        <button onclick="switchTab('database', this)" class="nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl text-[var(--text-main)] hover:bg-cyan-500/10 flex items-center transition-colors">
+                            <i class="fa-solid fa-database w-6 text-center text-blue-400"></i> Master DB
+                        </button>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- CONTENT AREA -->
+            <section class="flex-1 w-full bg-[var(--bg-card)] rounded-2xl border-2 border-[var(--border-color)] shadow-xl p-4 lg:p-6 min-h-[550px] flex flex-col">
+                
+                <!-- TAB KASIR (Utama) -->
+                <div id="tab-kasir" class="tab-content flex flex-col h-full flex-1">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+                        <div class="lg:col-span-2 flex flex-col h-full">
+                            <div class="flex items-center gap-2 border-b border-slate-700 pb-2 mb-4">
+                                <i class="fa-solid fa-tags text-cyan-400 text-xl"></i>
+                                <h2 class="text-lg font-tech font-black uppercase text-[var(--text-main)]">Daftar Produk</h2>
+                            </div>
+                            <div id="pos-products-list" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto hide-scrollbar max-h-[350px]"></div>
+                        </div>
+                        
+                        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex flex-col shadow-inner h-full">
+                            <h2 class="text-lg font-tech font-black text-amber-500 mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-cart-shopping"></i> Keranjang</h2>
+                            
+                            <!-- DATA PELANGGAN DI KERANJANG -->
+                            <div class="bg-slate-950 p-2.5 rounded border border-slate-700 mb-3 flex flex-col gap-2 shadow-sm shrink-0">
+                                <input type="text" id="cust-name" placeholder="Nama Pelanggan (Opsional)" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-xs outline-none focus:border-cyan-400">
+                                <input type="text" id="cust-wa" placeholder="No. WA Pembeli (Cth: 0812xxx)" class="w-full p-2 bg-slate-900 border border-slate-600 rounded text-white text-xs outline-none focus:border-cyan-400">
+                            </div>
+
+                            <div id="cart-list" class="flex-1 overflow-y-auto space-y-2 mb-4 font-mono hide-scrollbar min-h-[120px]"></div>
+                            
+                            <div class="border-t border-slate-700 pt-3 shrink-0">
+                                
+                                <!-- INPUT DISKON (RUPIAH / PERSEN) -->
+                                <div class="flex justify-between items-center text-xs font-bold text-slate-300 mb-2 gap-2">
+                                    <span>Diskon:</span>
+                                    <div class="flex gap-1 w-2/3">
+                                        <select id="disc-type" onchange="renderCart()" class="bg-slate-950 border border-slate-600 rounded text-white text-xs p-1 outline-none focus:border-amber-400">
+                                            <option value="rp">Rp</option>
+                                            <option value="percent">%</option>
+                                        </select>
+                                        <input type="number" id="cart-discount" oninput="renderCart()" class="flex-1 p-1.5 bg-slate-950 border border-slate-600 rounded text-right focus:border-amber-400 outline-none font-mono" placeholder="0">
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between text-lg font-black text-white mb-3">
+                                    <span>Total:</span> <span id="cart-total" class="text-emerald-400 tracking-wider">Rp 0</span>
+                                </div>
+                                <select id="payment-method" class="w-full p-2.5 bg-slate-950 border border-slate-600 rounded-lg text-white font-mono mb-3 outline-none focus:border-cyan-400">
+                                    <option value="Tunai">Tunai (Cash)</option>
+                                    <option value="QRIS">QRIS</option>
+                                    <option value="Transfer">Transfer Bank</option>
+                                </select>
+                                <button onclick="processCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-tech font-black py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-print"></i> Bayar & Cetak
+                                </button>
+                                <p class="text-[9px] text-center text-slate-500 mt-2 font-mono">*Jika No. WA diisi, struk akan dikirim otomatis ke WA pembeli.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KREDIT PROGRAMMER FOOTER -->
+                    <div class="mt-6 bg-[#020617] border border-cyan-400 rounded-lg p-4 md:p-5 shadow-[0_0_15px_rgba(6,182,212,0.15)] shrink-0">
+                        <div class="text-cyan-400 font-tech font-bold uppercase tracking-wider flex items-center mb-4 border-b border-cyan-800 pb-2 text-sm md:text-base">
+                            <i class="fa-solid fa-code mr-2"></i> PROFIL PROGRAMMER & DUKUNGAN SISTEM
+                        </div>
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <div class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)] shrink-0">
+                                    <i class="fa-solid fa-user-gear text-xl"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-cyan-400 font-black font-tech text-sm md:text-base tracking-wide truncate">MOHAMAD HARTADI (ADI)</div>
+                                    <div class="text-slate-400 font-mono text-[10px] md:text-xs truncate">Software Engineer & UI/UX Architect</div>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end">
+                                <a href="https://www.facebook.com/m.hartadi" target="_blank" class="flex-1 md:flex-none justify-center bg-blue-900/30 border border-blue-600 hover:bg-blue-800 text-blue-400 px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-[10px] md:text-xs transition-colors"><i class="fa-brands fa-facebook"></i> Facebook</a>
+                                <a href="https://newbieonline7.blogspot.com/" target="_blank" class="flex-1 md:flex-none justify-center bg-amber-900/30 border border-amber-600 hover:bg-amber-800 text-amber-500 px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-[10px] md:text-xs transition-colors"><i class="fa-solid fa-globe"></i> Blogosphere</a>
+                                <a href="https://wa.me/6282231036047?text=Halo%20Adi,%20Sistem%20POS%20ini%20keren!" target="_blank" class="flex-1 md:flex-none justify-center bg-emerald-900/30 border border-emerald-600 hover:bg-emerald-800 text-emerald-400 px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-[10px] md:text-xs transition-colors"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB STOK -->
+                <div id="tab-produk" class="tab-content hidden-ui flex flex-col">
+                    <div class="flex justify-between items-center border-b border-purple-500/50 pb-3 mb-4">
+                        <h2 class="text-xl font-tech font-black uppercase text-purple-400"><i class="fa-solid fa-boxes-stacked mr-2"></i> Inventory Toko</h2>
+                        <button onclick="openProductModal()" class="bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs px-4 py-2 rounded-lg shadow-md flex items-center gap-2"><i class="fa-solid fa-plus"></i> Tambah Item</button>
+                    </div>
+                    <div class="overflow-x-auto border border-slate-700 rounded-xl bg-slate-950">
+                        <table class="w-full text-left border-collapse text-xs font-mono">
+                            <thead class="bg-slate-900 border-b-2 border-purple-500 text-slate-300">
+                                <tr><th class="p-3">Nama Produk</th><th class="p-3">Harga</th><th class="p-3">Stok</th><th class="p-3 text-center">Aksi</th></tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="text-slate-100 divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB DATA PELANGGAN (CRM) -->
+                <div id="tab-pelanggan" class="tab-content hidden-ui flex flex-col">
+                    <div class="flex justify-between items-center border-b border-pink-500/50 pb-3 mb-4">
+                        <h2 class="text-xl font-tech font-black uppercase text-pink-400"><i class="fa-solid fa-users mr-2"></i> Database Pelanggan & Promo</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner md:col-span-1">
+                            <h3 class="text-pink-400 font-bold mb-2 uppercase text-xs tracking-wide border-b border-slate-700 pb-1"><i class="fa-solid fa-bullhorn"></i> Broadcast Promo WA</h3>
+                            <textarea id="promo-text" rows="4" class="w-full p-2 bg-slate-950 border border-slate-600 rounded text-white text-xs outline-none focus:border-pink-400 mb-2 font-mono" oninput="savePromo()" placeholder="Tulis pesan promo Anda..."></textarea>
+                            <button onclick="sendPromoAll()" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-2 rounded shadow-md text-xs transition-colors"><i class="fa-brands fa-whatsapp"></i> Kirim ke Semua Pelanggan</button>
+                            <p class="text-[9px] text-slate-500 mt-2 leading-relaxed">Kirim promo berurutan. Browser akan membuka tab baru. Pastikan <b>Pop-up tidak diblokir</b>.</p>
+                        </div>
+
+                        <div class="overflow-x-auto flex-1 border border-slate-700 rounded-xl bg-slate-950 md:col-span-2">
+                            <table class="w-full text-left border-collapse text-xs font-mono">
+                                <thead class="bg-slate-900 border-b-2 border-pink-500 text-slate-300">
+                                    <tr><th class="p-3">Nama</th><th class="p-3">No. WhatsApp</th><th class="p-3 text-center">Trx</th><th class="p-3 text-right">Total Belanja</th><th class="p-3 text-center">Kirim</th></tr>
+                                </thead>
+                                <tbody id="customer-table-body" class="text-slate-100 divide-y divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB LAPORAN & EKSPOR -->
+                <div id="tab-laporan" class="tab-content hidden-ui flex flex-col">
+                    <div class="flex flex-col md:flex-row justify-between items-center border-b border-emerald-500/50 pb-3 mb-4 gap-3">
+                        <h2 class="text-xl font-tech font-black uppercase text-emerald-400"><i class="fa-solid fa-chart-line mr-2"></i> Laporan & Analitik</h2>
+                        <div class="flex flex-wrap gap-2 text-[10px] font-mono font-bold">
+                            <button onclick="exportReport('excel')" class="bg-slate-900 hover:bg-emerald-900 text-emerald-400 border border-emerald-500 px-3 py-1.5 rounded flex items-center gap-1 transition-all"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <button onclick="exportReport('pdf')" class="bg-slate-900 hover:bg-red-900 text-red-400 border border-red-500 px-3 py-1.5 rounded flex items-center gap-1 transition-all"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                            <button onclick="exportReport('word')" class="bg-slate-900 hover:bg-blue-900 text-blue-400 border border-blue-500 px-3 py-1.5 rounded flex items-center gap-1 transition-all"><i class="fa-solid fa-file-word"></i> Word</button>
+                            <button onclick="exportReport('wa')" class="bg-slate-900 hover:bg-emerald-800 text-emerald-300 border border-emerald-400 px-3 py-1.5 rounded flex items-center gap-1 transition-all"><i class="fa-brands fa-whatsapp"></i> WA</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-center shadow-inner md:col-span-1 flex flex-col justify-center">
+                            <h3 class="text-slate-400 font-mono text-xs uppercase mb-1">Total Pendapatan</h3>
+                            <p id="report-revenue" class="text-2xl font-tech font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">Rp 0</p>
+                            <h3 class="text-slate-400 font-mono text-xs uppercase mt-3 mb-1">Total Transaksi</h3>
+                            <p id="report-count" class="text-2xl font-tech font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">0</p>
+                        </div>
+                        
+                        <!-- Area Grafik Penjualan -->
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner md:col-span-2">
+                            <h3 class="text-slate-400 font-mono text-xs uppercase mb-2 text-center border-b border-slate-700 pb-2">Grafik Penjualan Harian</h3>
+                            <div class="relative h-40 w-full">
+                                <canvas id="salesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto flex-1 border border-slate-700 rounded-xl bg-slate-950">
+                        <table class="w-full text-left border-collapse text-[10px] md:text-xs font-mono">
+                            <thead class="bg-slate-900 border-b-2 border-emerald-500 text-slate-300">
+                                <tr><th class="p-3">ID TRX</th><th class="p-3">Waktu</th><th class="p-3">Pelanggan</th><th class="p-3">Diskon</th><th class="p-3 text-right">Total Akhir</th></tr>
+                            </thead>
+                            <tbody id="report-table-body" class="text-slate-100 divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB DATABASE -->
+                <div id="tab-database" class="tab-content hidden-ui grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-700 text-center flex flex-col justify-center shadow-inner">
+                        <i class="fa-solid fa-cloud-arrow-down text-5xl text-blue-400 mb-4"></i>
+                        <h2 class="text-lg font-tech font-black text-white mb-2">Backup Sistem</h2>
+                        <p class="text-xs font-mono text-slate-400 mb-6">Unduh data Produk, Pelanggan & Transaksi (.json)</p>
+                        <button onclick="exportDatabase()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg w-full transition-all">EKSPOR JSON</button>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-700 text-center flex flex-col justify-center shadow-inner">
+                        <i class="fa-solid fa-cloud-arrow-up text-5xl text-amber-400 mb-4"></i>
+                        <h2 class="text-lg font-tech font-black text-white mb-2">Restore Sistem</h2>
+                        <p class="text-xs font-mono text-slate-400 mb-4">Unggah file backup .json sebelumnya</p>
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importDatabase(event)">
+                        <label for="import-file" class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-lg w-full transition-all cursor-pointer block">IMPOR JSON</label>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+    <!-- MODAL HELP SYSTEM & DONASI -->
+    <div id="helpModal" class="fixed inset-0 z-[1100] hidden bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl w-full max-w-2xl p-5 shadow-[0_0_50px_rgba(245,158,11,0.4)] flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-amber-500/50 pb-3 mb-4 shrink-0">
+                <h2 class="text-xl md:text-2xl font-tech font-black uppercase text-amber-500"><i class="fa-solid fa-circle-question mr-2"></i> Bantuan & Info Sistem</h2>
+                <button onclick="closeHelpModal()" class="text-slate-400 hover:text-red-400 text-3xl font-black leading-none">&times;</button>
+            </div>
+            
+            <div class="overflow-y-auto hide-scrollbar space-y-4 font-mono text-xs md:text-sm text-slate-300 pr-2">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-700 shadow-inner">
+                    <h3 class="text-cyan-400 font-bold mb-2 uppercase tracking-wide border-b border-slate-700 pb-1"><i class="fa-solid fa-book-open"></i> Panduan Fitur Utama</h3>
+                    <ul class="space-y-2">
+                        <li><b class="text-white">Terminal Kasir:</b> Pilih produk, atur nilai <b>Diskon (Rp atau %)</b>, input Nama & WA Pelanggan (opsional). Setelah dibayar, struk tercetak & otomatis mengirim rincian ke WA Pembeli.</li>
+                        <li><b class="text-white">Data Pelanggan (CRM):</b> Mencatat otomatis data pembeli saat checkout. Anda bisa mengubah <b>Teks Promo</b> dan mengirimkannya ke satu orang atau *Broadcast* ke semua database pembeli sekaligus.</li>
+                        <li><b class="text-white">Kelola Stok & Master DB:</b> Tambah barang, ubah harga di menu inventory. Fitur Ekspor/Impor JSON mencakup seluruh data (Barang, Transaksi, Pelanggan).</li>
+                        <li><b class="text-white">Laporan Transaksi:</b> Pantau grafik harian. Kolom diskon & nama pembeli tercatat. Ekspor data ke Excel, PDF, Word.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-[#020617] border border-cyan-400 p-4 rounded-xl shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                    <h3 class="text-cyan-400 font-bold mb-3 uppercase tracking-wide border-b border-cyan-800 pb-1 font-tech"><i class="fa-solid fa-code"></i> Kredit Programmer</h3>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-full border-2 border-cyan-400 flex items-center justify-center text-cyan-400 text-xl"><i class="fa-solid fa-user-gear"></i></div>
+                        <div><div class="font-bold text-cyan-300 text-base">Mohamad Hartadi (Adi)</div><div class="text-[10px] text-slate-400">Software Engineer & UI/UX Architect</div></div>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <a href="https://www.facebook.com/m.hartadi" target="_blank" class="text-[10px] bg-blue-900/50 text-blue-400 border border-blue-500 px-2 py-1 rounded"><i class="fa-brands fa-facebook"></i> Facebook</a>
+                        <a href="https://newbieonline7.blogspot.com/" target="_blank" class="text-[10px] bg-amber-900/50 text-amber-500 border border-amber-500 px-2 py-1 rounded"><i class="fa-solid fa-globe"></i> Blogosphere</a>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-950/40 border border-emerald-500 p-4 rounded-xl shadow-[0_0_10px_rgba(16,185,129,0.2)] text-center">
+                    <h3 class="text-emerald-400 font-bold mb-2 uppercase tracking-wide"><i class="fa-solid fa-hand-holding-heart"></i> Donasi Seikhlasnya</h3>
+                    <p class="mb-3 text-emerald-200/80 leading-relaxed">Dukung pengembangan aplikasi POS lokal ini dengan memberikan bantuan sukarela berupa <b class="text-white">Pulsa / Paket Data</b>.</p>
+                    <a href="https://wa.me/6282231036047?text=Halo%20Adi,%20saya%20ingin%20berdonasi%20untuk%20aplikasi%20POS" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-full transition-colors shadow-lg">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> Kirim via WA: 082231036047
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Settings Modal (TTS) -->
+    <div id="voiceSettingsModal" class="fixed inset-0 z-[10005] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-cyan-500 rounded-2xl w-full max-w-sm p-6 shadow-[0_0_30px_rgba(6,182,212,0.5)] relative flex flex-col font-sans">
+            <button onclick="closeVoiceSettingsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer z-10"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-cyan-400 text-base sm:text-lg font-black cyber-font mb-2 flex items-center gap-2 mt-2 sm:mt-0 tracking-widest uppercase"><i class="fa-solid fa-headset text-yellow-400"></i> Suara Asisten AI</h3>
+            <p class="text-xs text-slate-400 mb-4 font-mono">Pilih gaya suara pembaca otomatis (TTS) yang tersedia secara bawaan di perangkat ini.</p>
+            
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6">
+                <label class="block text-slate-300 font-mono text-[11px] sm:text-sm font-bold mb-2 uppercase">Daftar Suara:</label>
+                <select id="voiceSelect" onchange="changeBotVoice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-400 hide-scrollbar font-medium">
+                    <option value="">Memuat daftar suara sistem...</option>
+                </select>
+            </div>
+            
+            <button onclick="closeVoiceSettingsModal()" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black tracking-widest py-3 text-sm rounded-xl transition-colors shadow-lg cursor-pointer uppercase cyber-font">Simpan Gaya Suara</button>
+        </div>
+    </div>
+
+    <!-- FLOATING BOT & SCREENSAVER TRIGGER -->
+    <div class="fixed bottom-4 right-4 z-[900] flex items-center gap-2 font-mono">
+        <div id="chatWindow" class="absolute bottom-16 right-0 w-[350px] md:w-[420px] h-[550px] bg-slate-900 border-2 border-cyan-500 rounded-2xl flex-col hidden overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.5)]">
+            
+            <div class="bg-gradient-to-r from-slate-950 to-slate-900 p-3 border-b-2 border-cyan-500 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <i id="botToggleIcon" class="fa-solid fa-robot text-cyan-400 text-2xl animate-pulse"></i>
+                    <div>
+                        <h4 class="font-tech text-xs font-black text-cyan-400 tracking-wide">POS BOT V5.0</h4>
+                        <span class="text-[9px] text-emerald-400 font-black">● COGNITIVE TERMINAL & TTS</span>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button onclick="openVoiceSettingsModal()" class="text-cyan-400 hover:text-white bg-slate-800 border border-cyan-700/50 px-2 py-1.5 rounded cursor-pointer transition-all hover:bg-slate-700 mr-2" title="Ubah Gaya Suara (TTS)">
+                        <i class="fa-solid fa-headset"></i>
+                    </button>
+                    <button onclick="toggleChatWindow()" class="text-slate-400 hover:text-red-400 font-black text-xl leading-none">&minus;</button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-950 py-3 border-b border-slate-800 text-center shrink-0 shadow-inner">
+                <div id="bot-day" class="text-xs font-bold text-amber-500 tracking-widest uppercase">MEMUAT...</div>
+                <div id="bot-time" class="text-3xl font-tech font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] mt-1">00:00:00</div>
+            </div>
+
+            <div id="chatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs text-white bg-slate-950">
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 w-[85%] shadow-md">
+                    <span class="text-cyan-400 font-black mb-1 block">SISTEM:</span>
+                    Halo! Gunakan tombol *shortcut* di bawah untuk mencari info aplikasi, produk, portofolio, atau bantuan sistem dengan cepat.
+                </div>
+            </div>
+
+            <div class="bg-slate-900 px-3 py-2 flex gap-2 border-t border-slate-800 overflow-x-auto hide-scrollbar shrink-0">
+                <button type="button" onclick="handleBotShortcut('fitur_aplikasi')" class="bg-slate-950 border border-emerald-500/50 text-emerald-400 text-[10px] px-3 py-1.5 rounded-full font-bold hover:bg-emerald-500/20 whitespace-nowrap transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-star"></i> Fitur Aplikasi
+                </button>
+                <button type="button" onclick="handleBotShortcut('my_aplikasi')" class="bg-slate-950 border border-amber-500/50 text-amber-400 text-[10px] px-3 py-1.5 rounded-full font-bold hover:bg-amber-500/20 whitespace-nowrap transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-layer-group"></i> My Aplikasi
+                </button>
+                <button type="button" onclick="handleBotShortcut('programmer')" class="bg-slate-950 border border-fuchsia-500/50 text-fuchsia-400 text-[10px] px-3 py-1.5 rounded-full font-bold hover:bg-fuchsia-500/20 whitespace-nowrap transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-code"></i> Programmer
+                </button>
+            </div>
+
+            <form class="p-2 bg-slate-900 border-t border-slate-800 flex gap-2 shrink-0" onsubmit="handleChatSubmit(event)">
+                <input type="text" id="chatInput" autocomplete="off" placeholder="Tanya tentang fitur atau lainnya..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 rounded-xl transition-colors"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+        </div>
+
+        <button onclick="triggerScreensaverManual()" class="h-12 w-12 rounded-full bg-slate-950 border-2 border-cyan-500 text-cyan-400 flex items-center justify-center hover:scale-110 shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-transform">
+            <i class="fa-solid fa-desktop"></i>
+        </button>
+        <button onclick="toggleChatWindow()" class="h-14 w-14 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-400 border-2 border-white text-slate-950 flex items-center justify-center hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.8)] relative transition-transform">
+            <i class="fa-solid fa-comments text-2xl"></i>
+            <span class="absolute top-0 right-0 h-3 w-3 bg-emerald-400 rounded-full border-2 border-white animate-ping"></span>
+        </button>
+    </div>
+
+    <!-- MODAL FORM PRODUK -->
+    <div id="product-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center hidden z-[1000]">
+        <div class="bg-slate-900 border border-purple-500 rounded-xl p-6 w-full max-w-md font-mono text-sm text-white">
+            <h3 class="text-lg font-tech font-bold text-purple-400 mb-4 border-b border-purple-500/50 pb-2">Form Data Produk</h3>
+            <input type="hidden" id="form-id">
+            <label class="block mb-1 text-slate-400">Nama Produk</label>
+            <input type="text" id="form-name" class="w-full bg-slate-950 border border-slate-600 p-2 mb-3 rounded focus:border-purple-400 outline-none">
+            <label class="block mb-1 text-slate-400">Harga Jual (Rp)</label>
+            <input type="number" id="form-price" class="w-full bg-slate-950 border border-slate-600 p-2 mb-3 rounded focus:border-purple-400 outline-none">
+            <label class="block mb-1 text-slate-400">Stok Awal</label>
+            <input type="number" id="form-stock" class="w-full bg-slate-950 border border-slate-600 p-2 mb-5 rounded focus:border-purple-400 outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeProductModal()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded">Batal</button>
+                <button onclick="saveProduct()" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded font-bold">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // TEXT-TO-SPEECH (TTS) & VOICE RECOGNITION (SIRI TTS)
+        // ========================================================
+        const synth = window.speechSynthesis;
+        let botVoice = null;
+        let availableVoices = [];
+
+        function loadVoices() {
+            availableVoices = synth.getVoices();
+            if(availableVoices.length === 0) return;
+            
+            const voiceSelect = document.getElementById('voiceSelect');
+            if(voiceSelect) {
+                voiceSelect.innerHTML = '';
+                availableVoices.forEach((v, i) => {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `${v.name} (${v.lang})`;
+                    voiceSelect.appendChild(option);
+                });
+            }
+
+            const savedVoiceIndex = localStorage.getItem('posBotVoiceIndex');
+            if(savedVoiceIndex !== null && availableVoices[savedVoiceIndex]) {
+                botVoice = availableVoices[savedVoiceIndex];
+                if(voiceSelect) voiceSelect.value = savedVoiceIndex;
+            } else {
+                botVoice = availableVoices.find(v => (v.name.includes('Indonesian') || v.name.includes('ID') || v.name.includes('Female'))) || availableVoices[0];
+                if(voiceSelect) voiceSelect.value = availableVoices.indexOf(botVoice);
+            }
+        }
+        
+        if (synth.onvoiceschanged !== undefined) { synth.onvoiceschanged = loadVoices; }
+        
+        function changeBotVoice() {
+            const voiceSelect = document.getElementById('voiceSelect');
+            const selectedIndex = voiceSelect.value;
+            botVoice = availableVoices[selectedIndex];
+            localStorage.setItem('posBotVoiceIndex', selectedIndex);
+            speakBot("Gaya tema suara telah berhasil diubah dan siap digunakan.");
+        }
+
+        function openVoiceSettingsModal() { document.getElementById('voiceSettingsModal').classList.remove('hidden'); }
+        function closeVoiceSettingsModal() { document.getElementById('voiceSettingsModal').classList.add('hidden'); }
+
+        function speakBot(text) {
+            if (!synth) return;
+            synth.cancel(); 
+            const cleanText = text.replace(/\*/g, '').replace(/_/g, '').replace(/<[^>]*>?/gm, '');
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            if (botVoice) utterance.voice = botVoice;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            
+            const robotIcon = document.getElementById('botToggleIcon');
+            if (robotIcon) {
+                utterance.onstart = () => { robotIcon.classList.add('audio-speaking'); };
+                utterance.onend = () => { robotIcon.classList.remove('audio-speaking'); };
+            }
+            synth.speak(utterance);
+        }
+
+        // ========================================================
+        // DATA APLIKASI
+        // ========================================================
+        const myAppsDir = [
+            {u:"https://adikds.github.io/jarvis-ai/",i:"fa-robot",n:"JARVIS AI"},
+            {u:"https://adikds.github.io/edu-market-pro/",i:"fa-graduation-cap",n:"EduMarket Pro"},
+            {u:"https://adikds.github.io/iptv-terminal/",i:"fa-tv",n:"IPTV Terminal"},
+            {u:"https://adikds.github.io/Al-Quran-Karim/",i:"fa-book-quran",n:"Al-Quran Karim"},
+            {u:"https://adikds.github.io/-MEGA-ATLAS-FKG/",i:"fa-tooth",n:"Mega Atlas FKG"},
+            {u:"https://adikds.github.io/SISTEM-MONITORING-SEISMIK-PERINGATAN-TSUNAMI/",i:"fa-wave-square",n:"Tsunami Alert"},
+            {u:"https://adikds.github.io/INTEGRATED-DAM-ANALYTICS-ASSESSMENT-SYSTEM/",i:"fa-water",n:"Dam Analytics"},
+            {u:"https://adikds.github.io/WAY-APU-DAM/",i:"fa-building-shield",n:"Way Apu Dam"},
+            {u:"https://adikds.github.io/GeoStructPro-15-Essential-Geotechnical-Formulas/",i:"fa-mountain",n:"GeoStructPro 15"},
+            {u:"https://adikds.github.io/GEOSTRUCT-PRO-20-FORMULA-GEOTECHNICAL/",i:"fa-layer-group",n:"GeoStruct Pro 20"},
+            {u:"https://adikds.github.io/UNIFIED-SOIL-CLASSIFICATION-SYSTEM/",i:"fa-cubes",n:"USCS Soil"},
+            {u:"https://adikds.github.io/AERORADAR-PRO/",i:"fa-plane",n:"AeroRadar Pro"},
+            {u:"https://adikds.github.io/HYDRACANAL-PRO-GEOMETRIC-DESIGN/",i:"fa-water-ladder",n:"HydraCanal Pro"},
+            {u:"https://adikds.github.io/financial-planner/",i:"fa-chart-line",n:"Financial Planner"},
+            {u:"https://adikds.github.io/business-suite/",i:"fa-chart-bar",n:"Business Suite"},
+            {u:"https://adikds.github.io/stock-manager/",i:"fa-boxes-stacked",n:"Stock Manager"},
+            {u:"https://adikds.github.io/Aplikasi_Point_of_Sale_-POS-_atau_sistem_kasir/",i:"fa-cash-register",n:"POS Terminal Pro"},
+            {u:"https://adikds.github.io/KEUANGANKU/",i:"fa-wallet",n:"Keuanganku"},
+            {u:"https://adikds.github.io/DARUSSYIFA-MEDIKA/",i: "fa-hospital",n:"DARUSSYIFA"},
+            {u:"https://adikds.github.io/SKIN_SYIFA_AI/",i: "fa-magnifying-glass-chart",n:"SKIN SYIFA"},
+            {u:"https://adikds.github.io/NEURO-PSYCH_AI/",i: "fa-brain",n:"NEURO-PSYCH"},
+            {u:"https://adikds.github.io/SMILE-SYIFA-AI/",i: "fa-face-smile",n:"SMILE SYIFA"},
+            {u:"https://adikds.github.io/DOKTER-AI/",i: "fa-user-doctor",n:"DOKTER AI"},
+            {u: "https://www.f15library.com/", i: "fa-book-open-reader",n: "F15 Library"},
+            {u: "https://adikds.github.io/ATLAS-GEOTEKNIK/", i: "fa-earth-americas",n: "Geotechnical"},
+            {u: "https://adikds.github.io/STATISTICS_for_ENGINEERS-/", i: "fa-chart-pie",n: "Stats Engineers"},
+            {u: "https://famelack.com/radio/id", i: "fa-radio", n: "Radio Online"},
+            {u: "https://famelack.com/tv/id", i: "fa-tv",n: "TV Famelack"},
+            {u: "https://adikds.github.io/Mega-Atlas-Kedokteran-Neurologi-Bedah-Syaraf/", i: "fa-brain",n: "Neurology"},
+            {u: "https://adikds.github.io/Adi_Newbie/", i: "fa-user-astronaut",n: "Adi Newbie"}
+        ];
+
+        // ========================================================
+        // CORE SISTEM POS
+        // ========================================================
+        const DB_KEY = 'ULTIMATE_POS_DB';
+        let appName = localStorage.getItem('POS_APP_NAME') || 'TOKO MAJU JAYA';
+        let receiptFooterText = localStorage.getItem('POS_FOOTER_TEXT') || 'Terima Kasih\nBarang yang dibeli tidak dapat ditukar';
+        let activeTheme = "dark";
+        let idleSecs = 0;
+        let isScreensaverActive = false;
+        let cart = [];
+        let salesChartInstance = null; 
+
+        const dInit = new Date();
+        const daysArr = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const mthsArr = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+        document.getElementById('loading-day').innerText = `${daysArr[dInit.getDay()]}, ${dInit.getDate()} ${mthsArr[dInit.getMonth()]} ${dInit.getFullYear()}`;
+        document.getElementById('loading-time').innerText = dInit.toTimeString().split(' ')[0];
+
+        window.onload = () => {
+            initDB(); loadProducts(); syncAppName(); syncFooterText();
+            runTimeSync(); setupScreensaver();
+            setTimeout(loadVoices, 500);
+            
+            document.getElementById('promo-text').value = localStorage.getItem('POS_PROMO_TEXT') || `Halo Kak! Ada Promo Spesial dari ${appName}. Dapatkan diskon 10% untuk transaksi Anda selanjutnya. Kunjungi kami kembali ya!`;
+
+            setTimeout(() => {
+                const l = document.getElementById('startupLoader');
+                l.classList.add('opacity-0');
+                setTimeout(() => l.classList.add('hidden'), 700);
+            }, 3000);
+        };
+
+        function getDB() { 
+            let db = JSON.parse(localStorage.getItem(DB_KEY));
+            if(!db.customers) db.customers = [];
+            return db;
+        }
+        function saveDB(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+        function initDB() {
+            if (!localStorage.getItem(DB_KEY)) {
+                saveDB({ products: [
+                    { id: "P1", name: "Kopi Hitam Cyber", price: 15000, stock: 50 },
+                    { id: "P2", name: "Roti Matrix", price: 12000, stock: 30 }
+                ], transactions: [], customers: [] });
+            }
+        }
+
+        function syncAppName() { document.querySelectorAll('.app-name-display').forEach(el => el.innerText = appName); }
+        function editAppName() {
+            let newName = prompt("Masukkan nama toko/aplikasi baru:", appName);
+            if(newName && newName.trim() !== "") {
+                appName = newName.trim().toUpperCase();
+                localStorage.setItem('POS_APP_NAME', appName);
+                syncAppName();
+            }
+        }
+
+        function syncFooterText() { document.getElementById('receipt-footer-text').innerHTML = receiptFooterText.replace(/\n/g, '<br>'); }
+        function editFooterText() {
+            let newText = prompt("Ubah pesan Footer Struk (gunakan \\n untuk baris baru):", receiptFooterText.replace(/\n/g, '\\n'));
+            if(newText !== null && newText.trim() !== "") {
+                receiptFooterText = newText.replace(/\\n/g, '\n');
+                localStorage.setItem('POS_FOOTER_TEXT', receiptFooterText);
+                syncFooterText();
+            }
+        }
+
+        function runTimeSync() {
+            setInterval(() => {
+                const d = new Date();
+                const strDay = `${daysArr[d.getDay()]}, ${d.getDate()} ${mthsArr[d.getMonth()]} ${d.getFullYear()}`;
+                const strTime = d.toTimeString().split(' ')[0];
+                
+                document.getElementById('lbl-real-day').innerText = strDay;
+                document.getElementById('lbl-real-clock').innerText = strTime;
+                document.getElementById('bot-day').innerText = strDay;
+                document.getElementById('bot-time').innerText = strTime;
+
+                if(isScreensaverActive) {
+                    document.getElementById('scClockDisplay').innerText = strTime;
+                    document.getElementById('scDateDisplay').innerText = strDay;
+                }
+            }, 1000);
+        }
+
+        function toggleThemeMode() {
+            const b = document.getElementById("appBody");
+            if(activeTheme === "dark") {
+                b.className = b.className.replace("theme-dark", "theme-light");
+                document.getElementById("themeIcon").className = "fa-solid fa-sun text-amber-600";
+                document.getElementById("themeText").innerText = "LIGHT"; activeTheme = "light";
+            } else {
+                b.className = b.className.replace("theme-light", "theme-dark");
+                document.getElementById("themeIcon").className = "fa-solid fa-moon text-amber-400";
+                document.getElementById("themeText").innerText = "DARK"; activeTheme = "dark";
+            }
+        }
+
+        function switchTab(tab, btnCtx) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden-ui'));
+            document.getElementById('tab-' + tab).classList.remove('hidden-ui');
+            if(btnCtx) {
+                document.querySelectorAll('.nav-btn').forEach(b => b.className = "nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl text-[var(--text-main)] hover:bg-cyan-500/10 flex items-center transition-colors");
+                btnCtx.className = "nav-btn whitespace-nowrap w-full text-left px-4 py-3 rounded-xl bg-cyan-600 text-white flex items-center transition-colors shadow-md";
+            }
+            if(tab==='produk' || tab==='kasir') loadProducts();
+            if(tab==='pelanggan') loadCustomers();
+            if(tab==='laporan') loadReports();
+        }
+
+        // ========================================================
+        // KASIR & CHECKOUT
+        // ========================================================
+        function loadProducts() {
+            const db = getDB();
+            document.getElementById('pos-products-list').innerHTML = db.products.map(p => `
+                <button onclick="addToCart('${p.id}')" class="p-3 bg-slate-900 border border-slate-700 rounded-xl text-left hover:border-cyan-500 transition-all active:scale-95 flex flex-col justify-between shadow-inner">
+                    <span class="font-bold text-sm text-white">${p.name}</span>
+                    <div class="mt-2"><span class="text-[10px] text-slate-400 block">Stok: <b class="${p.stock<5?'text-red-400':''}">${p.stock}</b></span>
+                    <span class="text-cyan-400 font-bold text-sm">Rp ${p.price.toLocaleString('id-ID')}</span></div>
+                </button>`).join('');
+            
+            document.getElementById('inventory-table-body').innerHTML = db.products.map(p => `
+                <tr class="hover:bg-slate-900 transition-colors"><td class="p-3">${p.name}</td><td class="p-3">Rp ${p.price.toLocaleString()}</td><td class="p-3 font-bold ${p.stock<5?'text-red-400':''}">${p.stock}</td>
+                <td class="p-3 text-center"><button onclick="editProduct('${p.id}')" class="text-amber-400 mr-3 hover:text-white"><i class="fa-solid fa-pen"></i></button><button onclick="deleteProduct('${p.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
+        }
+
+        function addToCart(id) {
+            const db = getDB(); const p = db.products.find(x => x.id === id); const item = cart.find(x => x.id === id);
+            if (!p || p.stock <= 0) return alert('Stok habis!');
+            if (item) { if (item.quantity >= p.stock) return alert('Stok tidak cukup!'); item.quantity++; } else cart.push({ ...p, quantity: 1 });
+            renderCart();
+        }
+
+        function updateCartQty(id, d) {
+            const item = cart.find(x => x.id === id); const p = getDB().products.find(x => x.id === id);
+            item.quantity += d; if (item.quantity > p.stock) item.quantity = p.stock;
+            if (item.quantity <= 0) cart = cart.filter(x => x.id !== id); renderCart();
+        }
+
+        function renderCart() {
+            let subTot = 0; const c = document.getElementById('cart-list');
+            
+            if (cart.length === 0) {
+                c.innerHTML = '<p class="text-slate-500 text-xs italic">Keranjang kosong.</p>';
+            } else {
+                c.innerHTML = cart.map(i => { subTot += i.price * i.quantity; return `
+                    <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-700 text-xs text-white">
+                        <div><p class="font-bold">${i.name}</p><p class="text-[10px] text-slate-400">Rp ${i.price.toLocaleString()} x ${i.quantity}</p></div>
+                        <div class="flex gap-1 items-center"><button onclick="updateCartQty('${i.id}', -1)" class="bg-slate-800 px-2 rounded font-bold hover:bg-slate-700">-</button><span class="w-4 text-center">${i.quantity}</span><button onclick="updateCartQty('${i.id}', 1)" class="bg-slate-800 px-2 rounded font-bold hover:bg-slate-700">+</button></div>
+                    </div>`; 
+                }).join('');
+            }
+            
+            let discVal = parseFloat(document.getElementById('cart-discount').value) || 0;
+            let discType = document.getElementById('disc-type').value;
+            let discAmount = 0;
+            
+            if (discType === 'percent') { discAmount = subTot * (discVal / 100); } else { discAmount = discVal; }
+            let grandTotal = subTot - discAmount; if (grandTotal < 0) grandTotal = 0;
+            document.getElementById('cart-total').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+        }
+
+        function processCheckout() {
+            if (cart.length === 0) return alert("Keranjang kosong!");
+            const db = getDB(); 
+            let subTot = 0; 
+            const tid = 'TRX-' + Date.now(); 
+            const meth = document.getElementById('payment-method').value;
+            
+            const custName = document.getElementById('cust-name').value.trim() || 'Umum';
+            const custWA = document.getElementById('cust-wa').value.trim();
+
+            let discVal = parseFloat(document.getElementById('cart-discount').value) || 0;
+            let discType = document.getElementById('disc-type').value;
+            
+            for (let i of cart) {
+                const idx = db.products.findIndex(x => x.id === i.id);
+                if (idx === -1 || db.products[idx].stock < i.quantity) return alert(`Stok ${i.name} tidak cukup!`);
+                db.products[idx].stock -= i.quantity; 
+                subTot += (i.price * i.quantity);
+            }
+            
+            let discAmount = (discType === 'percent') ? (subTot * (discVal / 100)) : discVal;
+            let grandTotal = subTot - discAmount;
+            if (grandTotal < 0) grandTotal = 0;
+
+            if (custWA || custName !== 'Umum') {
+                let custIdx = db.customers.findIndex(c => c.wa === custWA);
+                if(custIdx === -1 && custWA === '') custIdx = db.customers.findIndex(c => c.name === custName && c.wa === '');
+
+                if (custIdx === -1) {
+                    db.customers.push({ name: custName, wa: custWA, totalSpent: grandTotal, history: [tid] });
+                } else {
+                    db.customers[custIdx].totalSpent += grandTotal;
+                    db.customers[custIdx].history.push(tid);
+                }
+            }
+
+            db.transactions.push({ 
+                id: tid, items: cart, subtotal: subTot, discountVal: discVal, discountType: discType,
+                discountAmount: discAmount, total: grandTotal, method: meth, date: new Date().toISOString(),
+                customerName: custName, customerWA: custWA
+            });
+            saveDB(db);
+
+            document.getElementById('receipt-id').innerText = tid;
+            document.getElementById('receipt-time').innerText = new Date().toLocaleString('id-ID');
+            document.getElementById('receipt-cust').innerText = custName + (custWA ? ` (${custWA})` : '');
+            document.getElementById('receipt-method').innerText = meth;
+            document.getElementById('receipt-items').innerHTML = cart.map(i => `<tr><td class="align-top py-1">${i.name} <br/> ${i.quantity}x ${i.price.toLocaleString('id-ID')}</td><td class="text-right align-bottom py-1">${(i.quantity * i.price).toLocaleString('id-ID')}</td></tr>`).join('');
+            
+            if (discAmount > 0) {
+                document.getElementById('receipt-subtotal-row').classList.remove('hidden');
+                document.getElementById('receipt-discount-row').classList.remove('hidden');
+                document.getElementById('receipt-subtotal').innerText = 'Rp ' + subTot.toLocaleString('id-ID');
+                document.getElementById('receipt-discount-label').innerText = (discType === 'percent') ? `Diskon (${discVal}%)` : `Diskon`;
+                document.getElementById('receipt-discount').innerText = '- Rp ' + discAmount.toLocaleString('id-ID');
+            } else {
+                document.getElementById('receipt-subtotal-row').classList.add('hidden');
+                document.getElementById('receipt-discount-row').classList.add('hidden');
+            }
+            document.getElementById('receipt-total').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+
+            let waMsg = `*Struk Pembelian - ${appName}*\nNo: ${tid}\nTgl: ${new Date().toLocaleString('id-ID')}\nPelanggan: ${custName}\n\n*Pesanan:*\n`;
+            cart.forEach(i => { waMsg += `- ${i.name} (${i.quantity}x) = Rp ${(i.quantity*i.price).toLocaleString('id-ID')}\n`; });
+            if(discAmount > 0) waMsg += `\nSubtotal: Rp ${subTot.toLocaleString('id-ID')}\nDiskon: -Rp ${discAmount.toLocaleString('id-ID')}\n`;
+            waMsg += `\n*TOTAL BAYAR: Rp ${grandTotal.toLocaleString('id-ID')}*\nMetode: ${meth}\n\n_${receiptFooterText.replace(/<br>/g, '\n')}_`;
+
+            const r = document.getElementById('print-receipt-area'); r.classList.remove('hidden');
+            setTimeout(() => { 
+                window.print(); 
+                if(custWA) {
+                    let formattedWA = custWA.replace(/[^0-9]/g, '');
+                    if(formattedWA.startsWith('0')) formattedWA = '62' + formattedWA.substring(1);
+                    window.open(`https://wa.me/${formattedWA}?text=${encodeURIComponent(waMsg)}`, '_blank');
+                }
+                r.classList.add('hidden'); 
+                cart = []; 
+                document.getElementById('cart-discount').value = '';
+                document.getElementById('cust-name').value = '';
+                document.getElementById('cust-wa').value = '';
+                renderCart(); 
+                loadProducts(); 
+            }, 500);
+        }
+
+        function loadCustomers() {
+            const db = getDB();
+            document.getElementById('customer-table-body').innerHTML = db.customers.map((c, idx) => `
+                <tr class="hover:bg-slate-900 transition-colors">
+                    <td class="p-3 font-bold">${c.name}</td><td class="p-3 text-cyan-400">${c.wa || '-'}</td><td class="p-3 text-center">${c.history.length}</td>
+                    <td class="p-3 text-right font-bold text-emerald-400">Rp ${c.totalSpent.toLocaleString('id-ID')}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="sendPromoWA('${c.wa}')" class="bg-pink-900/50 hover:bg-pink-700 text-pink-400 hover:text-white border border-pink-500 px-2 py-1 rounded text-[10px] transition-colors ${!c.wa ? 'opacity-50 cursor-not-allowed' : ''}" ${!c.wa ? 'disabled' : ''}><i class="fa-brands fa-whatsapp"></i> Kirim</button>
+                    </td>
+                </tr>`).join('');
+        }
+        function savePromo() { localStorage.setItem('POS_PROMO_TEXT', document.getElementById('promo-text').value); }
+        function sendPromoWA(wa) {
+            if(!wa) return;
+            const promo = document.getElementById('promo-text').value;
+            let formattedWA = wa.replace(/[^0-9]/g, ''); if(formattedWA.startsWith('0')) formattedWA = '62' + formattedWA.substring(1);
+            window.open(`https://wa.me/${formattedWA}?text=${encodeURIComponent(promo)}`, '_blank');
+        }
+        function sendPromoAll() {
+            const db = getDB(); const promo = document.getElementById('promo-text').value;
+            const validCustomers = db.customers.filter(c => c.wa && c.wa.trim() !== '');
+            if(validCustomers.length === 0) return alert("Belum ada data pelanggan dengan No WhatsApp yang valid.");
+            if(confirm(`Kirim promo ke ${validCustomers.length} pelanggan? Browser akan membuka banyak tab baru.`)) {
+                validCustomers.forEach(c => {
+                    let formattedWA = c.wa.replace(/[^0-9]/g, ''); if(formattedWA.startsWith('0')) formattedWA = '62' + formattedWA.substring(1);
+                    window.open(`https://wa.me/${formattedWA}?text=${encodeURIComponent(promo)}`, '_blank');
+                });
+            }
+        }
+
+        // ========================================================
+        // CRUD & LAPORAN
+        // ========================================================
+        function openProductModal() { document.getElementById('product-modal').classList.remove('hidden'); }
+        function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); document.getElementById('form-id').value=''; document.getElementById('form-name').value=''; document.getElementById('form-price').value=''; document.getElementById('form-stock').value=''; }
+        function editProduct(id) { const p = getDB().products.find(x => x.id===id); document.getElementById('form-id').value=p.id; document.getElementById('form-name').value=p.name; document.getElementById('form-price').value=p.price; document.getElementById('form-stock').value=p.stock; openProductModal(); }
+        function saveProduct() {
+            const db = getDB(), id = document.getElementById('form-id').value, name = document.getElementById('form-name').value, price = parseInt(document.getElementById('form-price').value), stock = parseInt(document.getElementById('form-stock').value);
+            if(!name || isNaN(price)) return alert("Isi form valid");
+            if(id) { const idx = db.products.findIndex(x=>x.id===id); db.products[idx]={id,name,price,stock}; } else db.products.push({id:'P-'+Date.now(),name,price,stock});
+            saveDB(db); closeProductModal(); loadProducts();
+        }
+        function deleteProduct(id) { if(confirm('Hapus produk ini?')) { const db=getDB(); db.products=db.products.filter(x=>x.id!==id); saveDB(db); loadProducts(); } }
+
+        function loadReports() {
+            const trx = getDB().transactions; const tot = trx.reduce((s, t) => s + t.total, 0);
+            document.getElementById('report-revenue').innerText = 'Rp ' + tot.toLocaleString('id-ID'); 
+            document.getElementById('report-count').innerText = trx.length;
+            
+            document.getElementById('report-table-body').innerHTML = [...trx].reverse().map(t => {
+                let discDisplay = (t.discountAmount > 0) ? `<span class="text-amber-400 font-bold">-Rp ${t.discountAmount.toLocaleString('id-ID')}</span>` : '-';
+                let custDisplay = t.customerName + (t.customerWA ? `<br><span class="text-[9px] text-cyan-500">${t.customerWA}</span>` : '');
+                return `<tr class="hover:bg-slate-900 transition-colors"><td class="p-3 text-cyan-400">${t.id}</td><td class="p-3">${new Date(t.date).toLocaleString('id-ID')}</td><td class="p-3 leading-tight">${custDisplay}</td><td class="p-3">${discDisplay}</td><td class="p-3 text-right font-bold text-emerald-400">Rp ${t.total.toLocaleString()}</td></tr>`
+            }).join('');
+            renderSalesChart(trx);
+        }
+
+        function renderSalesChart(transactions) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            const salesData = {};
+            transactions.forEach(t => {
+                const dateKey = new Date(t.date).toLocaleDateString('id-ID', {day: '2-digit', month: 'short'});
+                salesData[dateKey] = (salesData[dateKey] || 0) + t.total;
+            });
+            const labels = Object.keys(salesData); const data = Object.values(salesData);
+            if (salesChartInstance) salesChartInstance.destroy();
+            salesChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels.length > 0 ? labels : ['Belum Ada Data'], datasets: [{ label: 'Pendapatan Harian (Rp)', data: data.length > 0 ? data : [0], backgroundColor: 'rgba(16, 185, 129, 0.5)', borderColor: 'rgba(16, 185, 129, 1)', borderWidth: 1, borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } }, plugins: { legend: { labels: { color: '#f8fafc' } } } }
+            });
+        }
+
+        function exportReport(type) {
+            const trx = getDB().transactions; if(trx.length === 0) return alert("Tidak ada data transaksi untuk diekspor.");
+            const d = new Date(); const titleDate = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+            if(type === 'excel') {
+                const wsData = trx.map(t => ({ "ID Transaksi": t.id, "Waktu": new Date(t.date).toLocaleString('id-ID'), "Pelanggan": t.customerName, "Metode": t.method, "Subtotal (Rp)": t.subtotal, "Diskon (Rp)": t.discountAmount || 0, "Total Akhir (Rp)": t.total }));
+                const ws = XLSX.utils.json_to_sheet(wsData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Laporan"); XLSX.writeFile(wb, `Laporan_${appName}_${titleDate}.xlsx`);
+            } 
+            else if(type === 'pdf') {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF();
+                doc.setFontSize(16); doc.text(`Laporan Pendapatan - ${appName}`, 14, 20);
+                doc.setFontSize(10); let y = 30; let tot = 0;
+                doc.text("ID Trx | Waktu | Pelanggan | Diskon | Total", 14, y); y+=8;
+                trx.forEach(t => { let dt = new Date(t.date).toLocaleDateString(); doc.text(`${t.id} | ${dt} | ${t.customerName} | Rp${t.discountAmount||0} | Rp${t.total.toLocaleString('id-ID')}`, 14, y); tot+=t.total; y+=6; if(y>280){ doc.addPage(); y=20; } });
+                doc.text(`Total Keseluruhan: Rp ${tot.toLocaleString('id-ID')}`, 14, y+10); doc.save(`Laporan_${appName}.pdf`);
+            }
+            else if(type === 'word') {
+                const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+                let html = `<h2>Laporan Penjualan - ${appName}</h2><p>Tanggal: ${titleDate}</p><table border='1' style='border-collapse:collapse; width:100%; font-family:sans-serif;'><tr><th>ID</th><th>Waktu</th><th>Pelanggan</th><th>Diskon</th><th>Total</th></tr>`;
+                let tot = 0; trx.forEach(t => { html += `<tr><td>${t.id}</td><td>${new Date(t.date).toLocaleString()}</td><td>${t.customerName}</td><td>Rp ${(t.discountAmount||0).toLocaleString()}</td><td>Rp ${t.total.toLocaleString()}</td></tr>`; tot+=t.total; });
+                html += `</table><h3>Grand Total: Rp ${tot.toLocaleString()}</h3>`;
+                const blob = new Blob([header + html + "</body></html>"], { type: 'application/msword' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Laporan_${appName}.doc`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            }
+            else if(type === 'wa') {
+                let tot = trx.reduce((s,t)=>s+t.total,0); let text = `*LAPORAN PENJUALAN - ${appName}*\nTanggal: ${titleDate}\n\n*Total Transaksi:* ${trx.length}\n*Grand Total:* Rp ${tot.toLocaleString('id-ID')}\n\nSilakan cek file laporan di sistem.`; window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }
+        }
+        function exportDatabase() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([localStorage.getItem(DB_KEY)], { type: "application/json" })); a.download = `DB_${appName}_Backup.json`; a.click(); }
+        function importDatabase(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = (ev) => { localStorage.setItem(DB_KEY, ev.target.result); alert("Data dipulihkan!"); loadProducts(); e.target.value=''; }; r.readAsText(f); }
+        function openHelpModal() { document.getElementById('helpModal').classList.remove('hidden'); }
+        function closeHelpModal() { document.getElementById('helpModal').classList.add('hidden'); }
+
+        // ========================================================
+        // CHATBOT & SHORTCUT SYSTEM
+        // ========================================================
+        function toggleChatWindow() { document.getElementById('chatWindow').classList.toggle('hidden'); document.getElementById('chatWindow').classList.toggle('flex'); }
+
+        function appendBotReply(htmlContent, ttsText) {
+            const chatContainer = document.getElementById('chatMessages');
+            setTimeout(() => {
+                chatContainer.innerHTML += `
+                    <div class="flex gap-2 mt-3 animate-fadeIn">
+                        <div class="bg-cyan-950 border border-cyan-600/50 h-7 w-7 rounded flex items-center justify-center flex-shrink-0 text-cyan-400"><i class="fa-solid fa-robot text-xs"></i></div>
+                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-slate-200 text-xs w-full shadow-md leading-relaxed">
+                            <p class="font-bold text-[10px] text-cyan-400 mb-2 border-b border-slate-700/50 pb-1">🤖 JARVIS RESPONSE:</p>
+                            ${htmlContent}
+                        </div>
+                    </div>
+                `;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                if (ttsText) speakBot(ttsText);
+            }, 500);
+        }
+        
+        function handleBotShortcut(type) {
+            const c = document.getElementById("chatMessages");
+            c.innerHTML += `<div class="bg-cyan-600 p-2 md:p-2.5 rounded-xl text-right max-w-[85%] ml-auto mb-2 text-xs font-bold text-white shadow-md border border-cyan-400">${type.replace('_', ' ').toUpperCase()}</div>`;
+            c.scrollTop = c.scrollHeight;
+            
+            let botReply = ""; let ttsOutput = "";
+
+            if(type === 'programmer') {
+                botReply = `
+                    <div class="bg-slate-950 border border-fuchsia-500/50 rounded-xl p-3 shadow-lg">
+                        <div class="flex items-center gap-3 mb-3 border-b border-slate-800 pb-2">
+                            <div class="w-10 h-10 rounded-full bg-slate-900 border border-fuchsia-500 flex justify-center items-center text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.5)]"><i class="fa-solid fa-user-astronaut"></i></div>
+                            <div>
+                                <h4 class="font-black text-white text-xs tracking-widest font-mono uppercase">Mohamad Hartadi (Adi)</h4>
+                                <span class="text-[9px] text-emerald-400 font-mono tracking-widest">Digital Creator & Engineer</span>
+                            </div>
+                        </div>
+                        <div class="space-y-2.5 font-mono text-[10px] mt-1">
+                            <a href="https://www.facebook.com/m.hartadi" target="_blank" class="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors"><div class="bg-slate-900 p-1.5 rounded border border-slate-700"><i class="fa-brands fa-facebook w-3 text-center text-blue-500"></i></div>facebook.com/m.hartadi</a>
+                            <a href="https://wa.me/6282231036047" target="_blank" class="flex items-center gap-2 text-slate-300 hover:text-emerald-400 transition-colors"><div class="bg-slate-900 p-1.5 rounded border border-slate-700"><i class="fa-brands fa-whatsapp w-3 text-center text-emerald-500"></i></div>082231036047</a>
+                            <a href="https://newbieonline7.blogspot.com/" target="_blank" class="flex items-center gap-2 text-slate-300 hover:text-pink-400 transition-colors"><div class="bg-slate-900 p-1.5 rounded border border-slate-700"><i class="fa-solid fa-globe w-3 text-center text-pink-500"></i></div>newbieonline7.blogspot.com</a>
+                        </div>
+                    </div>`;
+                ttsOutput = "Menampilkan profil informasi kontak pengembang, Bapak Mohamad Hartadi. Silakan hubungi via WhatsApp, kunjungi Facebook, atau baca melalui Blog.";
+            } else if(type === 'fitur_aplikasi') {
+                botReply = `
+                    <div class="mb-2 text-emerald-400 font-bold uppercase tracking-wider text-[11px] border-b border-emerald-900/50 pb-1 flex items-center gap-2"><i class="fa-solid fa-star"></i> Fitur Utama POS System</div>
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-[11px] leading-relaxed text-slate-300 font-sans mt-2 shadow-inner">
+                        <ul class="list-disc list-inside space-y-1.5 mb-2 ml-1">
+                            <li><strong class="text-white">Checkout Cepat:</strong> Tambah produk, hitung diskon (Rp/% otomatis), dan cetak struk PDF pintar.</li>
+                            <li><strong class="text-white">Integrasi WhatsApp:</strong> Struk pembelian otomatis terkirim langsung ke nomor WA pelanggan yang didaftarkan saat transaksi.</li>
+                            <li><strong class="text-white">CRM Promo Otomatis:</strong> Fitur Broadcast untuk mengirim pesan promo massal ke semua pelanggan.</li>
+                            <li><strong class="text-white">Dashboard Analitik:</strong> Grafik *real-time* riwayat penjualan beserta dukungan eskpor ke Excel, PDF, dan MS Word.</li>
+                        </ul>
+                    </div>`;
+                ttsOutput = "Sistem Point of Sale ini dilengkapi fitur checkout canggih, cetak struk, pengiriman notifikasi via WhatsApp, dan dashboard pelaporan yang terintegrasi penuh.";
+            } else if(type === 'my_aplikasi') {
+                let appsHtml = '<div class="grid grid-cols-1 gap-2 mt-2 max-h-[250px] overflow-y-auto hide-scrollbar pr-1 font-sans">';
+                const styles = [{ iconBg: 'bg-cyan-950/50', iconText: 'text-cyan-400', hoverBorder: 'hover:border-cyan-500' }, { iconBg: 'bg-emerald-950/50', iconText: 'text-emerald-400', hoverBorder: 'hover:border-emerald-500' }, { iconBg: 'bg-amber-950/50', iconText: 'text-amber-400', hoverBorder: 'hover:border-amber-500' }, { iconBg: 'bg-fuchsia-950/50', iconText: 'text-fuchsia-400', hoverBorder: 'hover:border-fuchsia-500' }];
+                myAppsDir.forEach((app, index) => {
+                    const s = styles[index % styles.length];
+                    appsHtml += `<a href="${app.u}" target="_blank" class="group flex items-center gap-3 p-2.5 bg-slate-900 border border-slate-700 ${s.hoverBorder} rounded-xl transition-all text-slate-200 hover:text-white no-underline shadow-sm bg-opacity-80"><div class="w-8 h-8 rounded-lg ${s.iconBg} flex items-center justify-center ${s.iconText} group-hover:scale-110 shrink-0"><i class="fa-solid ${app.i} text-sm"></i></div><div class="flex flex-col min-w-0"><span class="text-[11px] font-bold leading-tight mb-0.5 truncate">${app.n}</span><span class="text-[9px] text-slate-400 leading-tight">Buka Aplikasi <i class="fa-solid fa-arrow-up-right-from-square ml-0.5 text-[8px]"></i></span></div></a>`;
+                });
+                appsHtml += '</div>';
+                botReply = `<div class="mb-2 text-cyan-400 font-bold uppercase tracking-wider text-[11px] border-b border-cyan-900/50 pb-1 flex items-center gap-2"><i class="fa-solid fa-layer-group"></i> Direktori My Aplikasi</div><div class="bg-slate-950/80 border border-slate-800 rounded-xl p-2 shadow-inner"><p class="text-[10px] text-slate-300 font-sans mb-1">Daftar lengkap ekosistem aplikasi yang dikembangkan. Pilih untuk membuka:</p>${appsHtml}</div>`;
+                ttsOutput = "Berikut adalah daftar semua aplikasi hasil karya pengembangan yang dapat Anda akses secara lengkap.";
+            }
+
+            appendBotReply(botReply, ttsOutput);
+        }
+
+        async function handleChatSubmit(e) {
+            e.preventDefault(); const inp = document.getElementById("chatInput"); const q = inp.value.trim(); if(!q) return;
+            const c = document.getElementById("chatMessages");
+            c.innerHTML += `<div class="bg-cyan-600 p-2 md:p-2.5 rounded-xl text-right max-w-[85%] ml-auto mb-2 text-xs font-bold text-white shadow-md border border-cyan-400">${q}</div>`;
+            c.scrollTop = c.scrollHeight;
+            inp.value='';
+
+            const lowerQ = q.toLowerCase();
+            if(lowerQ.includes("produk") || lowerQ.includes("barang") || lowerQ.includes("stok") || lowerQ.includes("kasir")) {
+                handleBotShortcut('fitur_aplikasi'); return;
+            } else if(lowerQ.includes("programmer") || lowerQ.includes("pembuat") || lowerQ.includes("adi") || lowerQ.includes("hartadi")) {
+                handleBotShortcut('programmer'); return;
+            } else if(lowerQ.includes("aplikasi") || lowerQ.includes("my app")) {
+                handleBotShortcut('my_aplikasi'); return;
+            }
+
+            // Fallback WIKIPEDIA SEARCH API untuk query di luar konteks
+            const typingId = 'typing-' + Date.now();
+            c.innerHTML += `
+                <div id="${typingId}" class="flex gap-2.5 mt-3 animate-fadeIn">
+                    <div class="bg-cyan-950 border border-cyan-600/50 h-7 w-7 rounded flex items-center justify-center flex-shrink-0 text-cyan-400"><i class="fa-solid fa-robot text-xs fa-spin"></i></div>
+                    <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl text-slate-400 text-xs w-full shadow-md leading-relaxed animate-pulse">
+                        <i class="fa-solid fa-satellite-dish mr-1"></i> Mencari referensi eksternal (Wikipedia)...
+                    </div>
+                </div>`;
+            c.scrollTop = c.scrollHeight;
+
+            try {
+                const searchUrl = `https://id.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exsentences=4&exintro=1&explaintext=1&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=1&origin=*`;
+                const wikiResp = await fetch(searchUrl);
+                const wikiData = await wikiResp.json();
+                
+                document.getElementById(typingId)?.remove();
+                const encodedTopic = encodeURIComponent(q);
+                const googleUrl = `https://www.google.com/search?q=${encodedTopic}`;
+                const geminiUrl = `https://gemini.google.com/app?q=${encodedTopic}`;
+
+                if (wikiData.query && wikiData.query.pages) {
+                    const pages = wikiData.query.pages; const pageId = Object.keys(pages)[0];
+                    const extract = pages[pageId].extract; const pageTitle = pages[pageId].title;
+                    const wikiUrl = `https://id.wikipedia.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`;
+
+                    let botReply = `
+                        <div class="mb-2 border-b border-cyan-500/40 pb-1.5">
+                            <strong class="text-cyan-400 font-tech tracking-wide text-[10px] uppercase"><i class="fa-solid fa-globe"></i> REFERENSI WIKIPEDIA (LUAR TOPIK)</strong>
+                            <h5 class="text-white font-bold font-mono text-[11px] mt-1 border-l-2 border-cyan-500 pl-2">${pageTitle.toUpperCase()}</h5>
+                        </div>
+                        <p class="text-slate-200 text-justify mb-3 font-sans leading-relaxed text-[11px]">${extract}</p>
+                        <div class="flex flex-col gap-2 mt-2 font-mono border-t border-slate-800/80 pt-2">
+                            <span class="text-slate-400 text-[9px] font-bold">Pintasan Penelusuran Lanjutan:</span>
+                            <a href="${wikiUrl}" target="_blank" class="bg-slate-950 border border-slate-700 hover:border-white text-slate-200 px-3 py-2 rounded-lg text-[10px] transition-all flex items-center gap-2"><i class="fa-brands fa-wikipedia-w text-base w-4 text-center"></i> Baca di Wikipedia</a>
+                            <a href="${googleUrl}" target="_blank" class="bg-slate-950 border border-slate-700 hover:border-blue-400 text-slate-200 px-3 py-2 rounded-lg text-[10px] transition-all flex items-center gap-2"><i class="fa-brands fa-google text-blue-400 text-base w-4 text-center"></i> Penelusuran Google</a>
+                            <a href="${geminiUrl}" target="_blank" class="bg-slate-950 border border-slate-700 hover:border-cyan-400 text-slate-200 px-3 py-2 rounded-lg text-[10px] transition-all flex items-center gap-2"><i class="fa-solid fa-sparkles text-cyan-400 text-base w-4 text-center"></i> Chat Gemini AI</a>
+                        </div>`;
+                    appendBotReply(botReply, `Berdasarkan Wikipedia. ${extract}`);
+                } else {
+                    let botReply = `
+                        <p class="font-sans text-[11px] mb-3 text-amber-400 leading-relaxed"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Topik "<strong>${q}</strong>" tidak ditemukan dalam database ataupun referensi Wikipedia.</p>
+                        <p class="font-sans text-[10px] mb-2 text-slate-400">Silakan telusuri secara manual melalui pintasan ini:</p>
+                        <div class="flex flex-col gap-2 mt-2 font-mono border-t border-slate-800/80 pt-2">
+                            <a href="${googleUrl}" target="_blank" class="bg-slate-950 border border-slate-700 hover:border-blue-400 text-slate-200 px-3 py-2 rounded-lg text-[10px] transition-all flex items-center gap-2"><i class="fa-brands fa-google text-blue-400 text-base w-4 text-center"></i> Penelusuran Google Reguler</a>
+                            <a href="${geminiUrl}" target="_blank" class="bg-slate-950 border border-slate-700 hover:border-cyan-400 text-slate-200 px-3 py-2 rounded-lg text-[10px] transition-all flex items-center gap-2"><i class="fa-solid fa-sparkles text-cyan-400 text-base w-4 text-center"></i> Chat Google Gemini AI</a>
+                        </div>`;
+                    appendBotReply(botReply, "Topik tidak ditemukan. Silakan gunakan tautan penelusuran yang tersedia.");
+                }
+            } catch (err) {
+                document.getElementById(typingId)?.remove();
+                appendBotReply(`<p class="text-red-400 text-xs">Gagal mengambil referensi eksternal. Periksa koneksi internet Anda.</p>`, "Gagal mengambil data eksternal.");
+            }
+        }
+
+        // ========================================================
+        // SCREENSAVER
+        // ========================================================
+        function setupScreensaver() {
+            const int = () => { idleSecs = 0; if(isScreensaverActive) { isScreensaverActive=false; const s=document.getElementById("posScreensaver"); s.classList.remove("opacity-100"); s.classList.add("opacity-0"); setTimeout(()=>s.classList.add("hidden"), 700); } };
+            window.onmousemove = int; window.onkeypress = int; window.ontouchstart = int;
+            setInterval(() => { idleSecs++; if(idleSecs >= 300 && !isScreensaverActive) triggerScreensaverManual(); }, 1000);
+        }
+        function triggerScreensaverManual() { isScreensaverActive=true; const s=document.getElementById("posScreensaver"); s.classList.remove("hidden"); setTimeout(()=>{s.classList.remove("opacity-0"); s.classList.add("opacity-100");}, 50); }
+    </script>
+</body>
+</html>
